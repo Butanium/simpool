@@ -8,12 +8,13 @@ import pylab as pl
 import math
 from scipy.special import comb
 
+
 class EventQueue:
     def __init__(self):
         self.queue = []
 
     def enqueue(self, delay: int, event):
-        assert(delay >= 0)
+        assert delay >= 0
         self.queue += [(delay, event)]
 
     def dequeue(self):
@@ -22,11 +23,12 @@ class EventQueue:
         """
         today = filter(lambda x: x[0] <= 1, self.queue)
         self.queue = filter(lambda x: x[0] > 1, self.queue)
-        self.queue = list(map(lambda x: [x[0]-1, x[1]], self.queue))
-        return [ x[1] for x in today ]
+        self.queue = list(map(lambda x: [x[0] - 1, x[1]], self.queue))
+        return [x[1] for x in today]
 
     def clear(self):
         self.queue = []
+
 
 class Symptoms(Enum):
     """
@@ -35,8 +37,9 @@ class Symptoms(Enum):
     NONE
     MILD
     SEVERE
-    DEAD 
+    DEAD
     """
+
     NONE = auto()
     MILD = auto()
     SEVERE = auto()
@@ -44,15 +47,16 @@ class Symptoms(Enum):
 
     def __str__(self) -> str:
         if self is Symptoms.NONE:
-            return 'n'
+            return "n"
         elif self is Symptoms.MILD:
-            return 'm'
+            return "m"
         elif self is Symptoms.SEVERE:
-            return 's'
+            return "s"
         elif self is Symptoms.DEAD:
-            return 'd'
+            return "d"
         else:
-            raise ValueError('Unknown State')
+            raise ValueError("Unknown State")
+
 
 class Category(Enum):
     """
@@ -63,6 +67,7 @@ class Category(Enum):
     ADMIN
     PATIENT
     """
+
     NURSE = auto()
     DOCTOR = auto()
     ADMIN = auto()
@@ -70,15 +75,16 @@ class Category(Enum):
 
     def __str__(self):
         if self is Category.NURSE:
-            return 'NUR'
+            return "NUR"
         elif self is Category.DOCTOR:
-            return 'MED'
+            return "MED"
         elif self is Category.ADMIN:
-            return 'ADM'
+            return "ADM"
         elif self is Category.PATIENT:
-            return 'PAT'
+            return "PAT"
         else:
-            raise ValueError('Unknown State')
+            raise ValueError("Unknown State")
+
 
 # P( death | severe symptomatic )
 #
@@ -112,11 +118,13 @@ p_mild_symptomatic = p_symptomatic - p_severe_syptomatic
 # model:
 #  seems lognormal, but the pdf does not match lognormal(2.52, 3.95)
 #  used discrete but slightly adapted to better match fitted lognormal
-pmin = 1/11
-latentperiod_pk = (2*pmin, 4*pmin, 2*pmin, 1*pmin, 1*pmin, 1*pmin)
+pmin = 1 / 11
+latentperiod_pk = (2 * pmin, 4 * pmin, 2 * pmin, 1 * pmin, 1 * pmin, 1 * pmin)
 latentperiod_xk = np.arange(len(latentperiod_pk))
 latentperiod_pdf = stats.rv_discrete(
-    name='custm', values=(latentperiod_xk, latentperiod_pk))
+    name="custm", values=(latentperiod_xk, latentperiod_pk)
+)
+
 
 def i2s_days():
     return math.floor(latentperiod_pdf.rvs(size=1)[0])
@@ -138,6 +146,7 @@ def i2s_days():
 shape = 5.807
 scale = 0.948
 latentperiod_dist = stats.gamma(a=shape, scale=scale)
+
 
 def symptoms_delay(symptoms):
     return math.floor(latentperiod_dist.rvs(size=1)[0])
@@ -174,7 +183,7 @@ def severity_days(symptoms):
     elif symptoms is Symptoms.SEVERE:
         d = 20
     elif symptoms is Symptoms.NONE:
-        d = 20 #FIXME: guess
+        d = 20  # FIXME: guess
     else:
         raise ValueError("invalid symptoms")
     return d
@@ -185,18 +194,17 @@ def severity_days(symptoms):
 # but needs to be adjusted to the data.
 # deterministic at the moment.
 def relative_rna_levels(days_until_symptomonset: int, symptoms: Symptoms) -> list:
-    #TODO: refine model
+    # TODO: refine model
     p = 0.1
     # -2 days before potential onset: no RNA
-    rna_levels = [0 for d in range(1,days_until_symptomonset-2)]
+    rna_levels = [0 for d in range(1, days_until_symptomonset - 2)]
     # then:
     for d in range(20):
-        r = comb(40,d) *  p**d * (1-p)**d / (comb(40,3) *  p**3 * (1-p)**3)
+        r = comb(40, d) * p**d * (1 - p) ** d / (comb(40, 3) * p**3 * (1 - p) ** 3)
         rna_levels += [r]
     # finally:
     rna_levels += [0]
     return rna_levels
-
 
 
 def draw_course_of_disease():
@@ -216,27 +224,25 @@ def draw_course_of_disease():
 
     # incubation
     if symptoms is not Symptoms.NONE:
-        
         symptoms_events += [(symptoms_onset, symptoms)]
 
         # dies?
         u = random.random()
         if u < p_death[symptoms]:
-            symptoms_events += [(symptoms_onset+symptoms_duration, Symptoms.DEAD)]
+            symptoms_events += [(symptoms_onset + symptoms_duration, Symptoms.DEAD)]
         else:
-            symptoms_events += [(symptoms_onset+symptoms_duration, Symptoms.NONE)]
+            symptoms_events += [(symptoms_onset + symptoms_duration, Symptoms.NONE)]
 
     # RNA levels
-    rna_levels = relative_rna_levels(days_until_symptomonset= symptoms_onset, symptoms= symptoms)
-    rna_events = [(d+1,r) for d,r in enumerate(rna_levels)]
+    rna_levels = relative_rna_levels(
+        days_until_symptomonset=symptoms_onset, symptoms=symptoms
+    )
+    rna_events = [(d + 1, r) for d, r in enumerate(rna_levels)]
 
     return symptoms_events, rna_events
 
 
-
-
 class Agent:
-
     def __init__(self, myid, mycat, myinfex):
         """
         Creates an agent.
@@ -264,7 +270,7 @@ class Agent:
 
         self.myinfex = myinfex
 
-        self.testresult= None
+        self.testresult = None
         self.testresult_next = None
 
     @property
@@ -274,23 +280,24 @@ class Agent:
     def __str__(self) -> str:
         mystr = str(self.symptoms)
         # FIXME: remove next line
-        mystr += 'q' if self.quarantined else ''
+        mystr += "q" if self.quarantined else ""
         return mystr
 
     @property
     def state(self):
-        return {'infected': self.infected,
-                'infected_by': self.infected_by,
-                'symptoms': self.symptoms,
-                'rna': self.rna,
-                'quarantined': self.quarantined,
-                'working': self.working,
-                'dead': self.dead,
-                'sick_leave': self.sick_leave,
-                'spreading': self.spreading,
-                'staff': self.staff,
-                'testresult': self.testresult,
-                }
+        return {
+            "infected": self.infected,
+            "infected_by": self.infected_by,
+            "symptoms": self.symptoms,
+            "rna": self.rna,
+            "quarantined": self.quarantined,
+            "working": self.working,
+            "dead": self.dead,
+            "sick_leave": self.sick_leave,
+            "spreading": self.spreading,
+            "staff": self.staff,
+            "testresult": self.testresult,
+        }
 
     def add_testresult(self, test_result):
         self.testresult_next = test_result
@@ -306,10 +313,10 @@ class Agent:
         if not self.infected:
             symptoms_events, rna_events = draw_course_of_disease()
 
-            for d,e in symptoms_events:
-                self.symptoms_queue.enqueue(d,e)
-            for d,e in rna_events:
-                self.rna_queue.enqueue(d,e)
+            for d, e in symptoms_events:
+                self.symptoms_queue.enqueue(d, e)
+            for d, e in rna_events:
+                self.rna_queue.enqueue(d, e)
 
             self.infected = True
             self.infected_by = by_id
@@ -322,12 +329,12 @@ class Agent:
         Arguments:
         days -- number of days to quarantine from now (int)
         """
-        assert(days >= 0)
+        assert days >= 0
         if days > 0:
             self.quarantined = True
             self.quarantine_queue.clear()
             self.quarantine_queue.enqueue(days, False)
-            #print(f' quarantined agent {self.id} at day {self.myinfex.t}')
+            # print(f' quarantined agent {self.id} at day {self.myinfex.t}')
         else:
             # do not quarantine
             pass
@@ -373,20 +380,20 @@ class Agent:
         """
 
         # reset test result for current day
-        self.testresult= self.testresult_next
-        self.testresult_next= None
+        self.testresult = self.testresult_next
+        self.testresult_next = None
 
         symptoms_events = self.symptoms_queue.dequeue()
-        assert(len(symptoms_events) <= 1)
+        assert len(symptoms_events) <= 1
         for e in symptoms_events:
             self.symptoms = e
 
         rna_events = self.rna_queue.dequeue()
-        assert(len(rna_events) <= 1)
+        assert len(rna_events) <= 1
         for e in rna_events:
             self.rna = e
 
         quarantine_events = self.quarantine_queue.dequeue()
-        assert(len(quarantine_events) <= 1)
+        assert len(quarantine_events) <= 1
         for e in quarantine_events:
             self.quarantined = e

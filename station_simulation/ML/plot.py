@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("../")
 
 import numpy as np
@@ -14,7 +15,7 @@ import os.path
 from os import path
 from ML.mlutils import progressbar, get_loss_function
 
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 import random
 import tensorflow as tf
@@ -42,25 +43,23 @@ from learn_simple import plot_run, load_NN
 
 
 # ===================================
-NETWORK_FILE = f'my_neural_network-{config.T}-{config.N}-new.h5'
+NETWORK_FILE = f"my_neural_network-{config.T}-{config.N}-new.h5"
 
 # testing with small N
-EXPEXTED_TEST_PER_DAY = config.N / (4*config.N)
+EXPEXTED_TEST_PER_DAY = config.N / (4 * config.N)
 EXPEXTED_QUARANTINES_PER_DAY = config.N / 10
 QUARANTINE_DAYS = 7
 
 # tests:
 mytests = {}
-mytests[0] = {
-    'type': 'TestNull',
-    'parameters': {}
-}
+mytests[0] = {"type": "TestNull", "parameters": {}}
 mytests[1] = {
-    'type': 'TestRandom',
-    'parameters': {
-        'prob_test': EXPEXTED_TEST_PER_DAY / config.N,
-        'prob_quarantine': EXPEXTED_QUARANTINES_PER_DAY / config.N,
-        'quarantine_days': QUARANTINE_DAYS }
+    "type": "TestRandom",
+    "parameters": {
+        "prob_test": EXPEXTED_TEST_PER_DAY / config.N,
+        "prob_quarantine": EXPEXTED_QUARANTINES_PER_DAY / config.N,
+        "quarantine_days": QUARANTINE_DAYS,
+    },
 }
 # =========================================
 
@@ -72,10 +71,16 @@ TRAINING_TIME_DAYS = 40
 if __name__ == "__main__":
     # parsing
     OUTPUT_FIGURES_NUM_default = 10
-    T_default = 4*7*3
-    parser = argparse.ArgumentParser(description='Plot some infection predictions.')
-    parser.add_argument('--figs', type=int, help=f'number of figures to generate (default {OUTPUT_FIGURES_NUM_default})')
-    parser.add_argument('--T', type=int, help=f'time to predict in days (default {T_default})')
+    T_default = 4 * 7 * 3
+    parser = argparse.ArgumentParser(description="Plot some infection predictions.")
+    parser.add_argument(
+        "--figs",
+        type=int,
+        help=f"number of figures to generate (default {OUTPUT_FIGURES_NUM_default})",
+    )
+    parser.add_argument(
+        "--T", type=int, help=f"time to predict in days (default {T_default})"
+    )
     args = parser.parse_args()
 
     if args.figs:
@@ -99,8 +104,17 @@ if __name__ == "__main__":
     try:
         model = load_NN(NETWORK_FILE)
         for r in range(OUTPUT_FIGURES_NUM):
-            plot_run(model, usetest, nogui=True, filename=f"plot-{r:03d}-out.png", T=config.T,
-                initial_infections={'T_range': (TRAINING_TIME_DAYS,TRAINING_TIME_DAYS+7), 'N_range': (1,2)})
+            plot_run(
+                model,
+                usetest,
+                nogui=True,
+                filename=f"plot-{r:03d}-out.png",
+                T=config.T,
+                initial_infections={
+                    "T_range": (TRAINING_TIME_DAYS, TRAINING_TIME_DAYS + 7),
+                    "N_range": (1, 2),
+                },
+            )
 
     except KeyboardInterrupt as e:
-        print(f'Stopped plotting by user.')
+        print(f"Stopped plotting by user.")

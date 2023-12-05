@@ -7,7 +7,6 @@ import contextlib
 from tqdm import tqdm
 
 from Infections.Agent import Symptoms, Category
-from pprint import pprint
 import os.path
 from os import path
 from ML.mlutils import progressbar
@@ -231,7 +230,6 @@ def contactgraphs2matrix(contactgraphs):
     # init
     current_T = len(contactgraphs)
     current_N = len(contactgraphs[0].keys())
-    # print(current_N)
     matrix = np.zeros((current_T, current_N, current_N))
     # fill
     for t in range(current_T):
@@ -247,7 +245,6 @@ class SimulationGenerator(object):
         self.usetest = usetest
 
     def generate_data(self):
-        # print('Generate data')
         # switch to a larger time that is to be simulated
         config.T = SIMULATED_TIME_DAYS
         # simulate
@@ -316,11 +313,9 @@ class SimulationGenerator(object):
         #
         # speading : [0 .. config.T - 1] [0 .. config.N - 1] -> {0,1}
         #   if agent 0 is spreading at time t
-        # print('[done generate data]')
         return graph, node_labels, spreading
 
     def generate_traces(self):
-        # print('Generate batch')
         graphs = []
         node_labels = []
         spreading = []
