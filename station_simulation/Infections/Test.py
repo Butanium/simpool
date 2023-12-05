@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-import sys
-sys.path.append("../")
-
 import config
 
 import random
@@ -16,13 +13,15 @@ from ML import learn_simple
 test_perday = 1300
 
 # append new tests here
-REGISTERED_TESTS = ['TestAll',
-    'TestJustLook', 
-    'TestPool', 
-    'TestContacts', 
-    'TestRandom', 
-    'TestNull', 
-    'TestSpreadingPredictionNN']
+REGISTERED_TESTS = [
+    "TestAll",
+    "TestJustLook",
+    "TestPool",
+    "TestContacts",
+    "TestRandom",
+    "TestNull",
+    "TestSpreadingPredictionNN",
+]
 
 
 def nb_available_tests(t):
@@ -39,10 +38,10 @@ class PoolableProbing(object):
     Examples: rt pcr, ...
     """
 
-    #def __init__(self, se=0.65, sp=0.95, k=1):
+    # def __init__(self, se=0.65, sp=0.95, k=1):
     def __init__(self, se=1.0, sp=1.0, k=1):
-        self.se = 1-(1-se)**k
-        self.sp = 1-(1-sp)**k
+        self.se = 1 - (1 - se) ** k
+        self.sp = 1 - (1 - sp) ** k
 
     def __str__(self) -> str:
         return f"PoolableProbing(se={self.se:.3f}, sp={self.sp:.3f})"
@@ -51,7 +50,7 @@ class PoolableProbing(object):
         """
         Returns if <agent> is positive
         """
-        return agent.rna > 0 #FIXME
+        return agent.rna > 0  # FIXME
 
     def probe(self, agents, k=1) -> bool:
         """
@@ -63,8 +62,8 @@ class PoolableProbing(object):
             if self.__ispositive__(agent):
                 group_positive = True
         # set local se and sp
-        se = 1-(1-self.se)**k
-        sp = 1-(1-self.sp)**k
+        se = 1 - (1 - self.se) ** k
+        sp = 1 - (1 - self.sp) ** k
         # test group
         u = random.random()
         if group_positive:
@@ -89,8 +88,12 @@ class Test(object):
         return "Test"
 
     def __get_alive__(self):
-        return list(filter(lambda i: not(self.infex.agents[i].symptoms is Symptoms.DEAD),
-                           list(range(len(self.infex.agents)))))
+        return list(
+            filter(
+                lambda i: not (self.infex.agents[i].symptoms is Symptoms.DEAD),
+                list(range(len(self.infex.agents))),
+            )
+        )
 
     def get_nb_tests(self):
         return list(map(lambda tup: tup[1], self.nb_tests))
@@ -114,13 +117,11 @@ class TestJustLook(Test):
         super().__init__(probing, infex)
 
     def __str__(self):
-        return \
-            f"""TestJustLook:
+        return f"""TestJustLook:
 probing={self.probing},
 infex={self.infex}"""
 
     def do_test(self):
-
         pop = config.person_ids
         for i in pop:
             if self.infex.agents[i].symptoms is Symptoms.SEVERE:
@@ -142,8 +143,7 @@ class TestAll(Test):
         super().__init__(probing, infex)
 
     def __str__(self):
-        return \
-            f"""TestAll:
+        return f"""TestAll:
 probing={self.probing},
 infex={self.infex}"""
 
@@ -154,7 +154,10 @@ infex={self.infex}"""
         pop = config.person_ids
         random.shuffle(pop)
         for i in pop:
-            if self.infex.agents[i].symptoms is Symptoms.DEAD or self.infex.agents[i].quarantined:
+            if (
+                self.infex.agents[i].symptoms is Symptoms.DEAD
+                or self.infex.agents[i].quarantined
+            ):
                 continue
 
             # enough tests?
@@ -167,9 +170,10 @@ infex={self.infex}"""
             test_result = self.probing.probe([self.infex.agents[i]])
             self.infex.agents[i].add_testresult(test_result)
             if test_result:
-                self.infex.agents[i].quarantine(days=3*14)
+                self.infex.agents[i].quarantine(days=3 * 14)
 
         self.nb_tests += [(self.infex.t, cnt)]
+
 
 class TestRandom(Test):
     """
@@ -182,13 +186,12 @@ class TestRandom(Test):
     def __init__(self, probing: PoolableProbing, infex: InfectionExecution, **kwargs):
         super().__init__(probing, infex)
         self.kwargs = kwargs
-        self.prob_test = kwargs['prob_test']
-        self.prob_quarantine = kwargs['prob_quarantine']
-        self.quarantine_days = kwargs['quarantine_days']
+        self.prob_test = kwargs["prob_test"]
+        self.prob_quarantine = kwargs["prob_quarantine"]
+        self.quarantine_days = kwargs["quarantine_days"]
 
     def __str__(self):
-        return \
-f"""TestRandom:
+        return f"""TestRandom:
 probing={self.probing},
 infex={self.infex},
 prob_test={self.prob_test},
@@ -206,7 +209,7 @@ quarantine_days={self.quarantine_days}
             if self.infex.agents[i].symptoms is Symptoms.DEAD:
                 # do not test dead
                 continue
-            
+
             # check if to test
             u = random.random()
             if u <= self.prob_test:
@@ -223,7 +226,7 @@ quarantine_days={self.quarantine_days}
 
             # enough tests?
             if cnt + 1 > tests_max:
-                #no
+                # no
                 break
 
             # else, make test if planned
@@ -244,13 +247,14 @@ class TestSpreadingPredictionNN(Test):
     - Quarantine duration: <quarantine_days>
     - cutoff probability: <cutoff_prob>
     """
+
     def __init__(self, probing: PoolableProbing, infex: InfectionExecution, **kwargs):
         super().__init__(probing, infex)
         self.kwargs = kwargs
-        self.nn_filename = kwargs['nn_filename']
-        self.test_per_day = kwargs['test_per_day']
-        self.quarantine_days = kwargs['quarantine_days']
-        self.cutoff_prob = kwargs['cutoff_prob']
+        self.nn_filename = kwargs["nn_filename"]
+        self.test_per_day = kwargs["test_per_day"]
+        self.quarantine_days = kwargs["quarantine_days"]
+        self.cutoff_prob = kwargs["cutoff_prob"]
         # load NN
         self.model = learn_simple.load_NN(self.nn_filename, stateful=True)
         # state vector of all agents
@@ -259,8 +263,7 @@ class TestSpreadingPredictionNN(Test):
         self.prediction_vec = []
 
     def __str__(self):
-        return \
-f"""TestSpreadingPredictionNN:
+        return f"""TestSpreadingPredictionNN:
 probing={self.probing},
 infex={self.infex},
 nn_filename={self.nn_filename},
@@ -271,29 +274,49 @@ cutoff_prob={self.cutoff_prob}
 
     def __get_most_likely_spreading_ids__(self):
         # get [ (id, prediction) , ... ]
-        #print(self.prediction_vec[-1])
-        id_pred_vec = enumerate( self.prediction_vec[-1] )
-        #print(list(id_pred_vec))
+        # print(self.prediction_vec[-1])
+        id_pred_vec = enumerate(self.prediction_vec[-1])
+        # print(list(id_pred_vec))
         # sort (decending) and filter
-        ids = [ agent_id for agent_id, pred_prob in sorted( id_pred_vec, key=lambda x: x[1], reverse=True ) if pred_prob >= self.cutoff_prob ]        
+        ids = [
+            agent_id
+            for agent_id, pred_prob in sorted(
+                id_pred_vec, key=lambda x: x[1], reverse=True
+            )
+            if pred_prob >= self.cutoff_prob
+        ]
         return ids
 
     def __update_state__(self):
         # updates the state that is required for the NN
         self.state_vec += self.infex.get_state_vec()
-        #current_T = len(self.state_vec)
+        # current_T = len(self.state_vec)
         # get properties
-        symptom_none, symptom_mild, symptom_severe, symptom_dead, \
-           category_MED, category_NUR, category_ADM, category_PAT, \
-           infected, spreading, \
-           working, quarantined, \
-           contactgraphs, \
-           test_positive, test_negative = learn_simple.get_properties(self.state_vec, self.infex)
+        (
+            symptom_none,
+            symptom_mild,
+            symptom_severe,
+            symptom_dead,
+            category_MED,
+            category_NUR,
+            category_ADM,
+            category_PAT,
+            infected,
+            spreading,
+            working,
+            quarantined,
+            contactgraphs,
+            test_positive,
+            test_negative,
+        ) = learn_simple.get_properties(self.state_vec, self.infex)
         # prediction for all agents
         all_pred = None
         for i in range(config.N):
             # bring agent i into position 0
-            learn_simple.swap_agents(i, 0, contactgraphs,
+            learn_simple.swap_agents(
+                i,
+                0,
+                contactgraphs,
                 symptom_none,
                 symptom_mild,
                 symptom_severe,
@@ -307,13 +330,28 @@ cutoff_prob={self.cutoff_prob}
                 working,
                 quarantined,
                 test_positive,
-                test_negative)
+                test_negative,
+            )
             # build input
-            x = np.concatenate( (symptom_none, symptom_mild, symptom_severe, symptom_dead, \
-                    category_MED, category_NUR, category_ADM, category_PAT, \
-                    working, quarantined, test_positive, test_negative, \
-                    learn_simple.contactgraphs2matrix(contactgraphs)), axis=1 )
-            T_data = [ x[-1] ]
+            x = np.concatenate(
+                (
+                    symptom_none,
+                    symptom_mild,
+                    symptom_severe,
+                    symptom_dead,
+                    category_MED,
+                    category_NUR,
+                    category_ADM,
+                    category_PAT,
+                    working,
+                    quarantined,
+                    test_positive,
+                    test_negative,
+                    learn_simple.contactgraphs2matrix(contactgraphs),
+                ),
+                axis=1,
+            )
+            T_data = [x[-1]]
             # DATA_SIZE is 1 since has only 1 run to predict
             T_data = np.array(T_data).reshape(1, 1, learn_simple.OBS_LENGTH)
             # predict agent, stateful=True -> remember state for next batch
@@ -325,7 +363,10 @@ cutoff_prob={self.cutoff_prob}
             else:
                 all_pred = np.concatenate((all_pred, pred), axis=1)
             # swap back (to be sure)
-            learn_simple.swap_agents(i, 0, contactgraphs,
+            learn_simple.swap_agents(
+                i,
+                0,
+                contactgraphs,
                 symptom_none,
                 symptom_mild,
                 symptom_severe,
@@ -339,21 +380,21 @@ cutoff_prob={self.cutoff_prob}
                 working,
                 quarantined,
                 test_positive,
-                test_negative)
+                test_negative,
+            )
         # update predeiction vector
         self.prediction_vec = all_pred
-
 
     def do_test(self):
         # update prediction by NN
         self.__update_state__()
         # JUST FOR TEST!!!!!!
-        #if self.infex.t == 1:
+        # if self.infex.t == 1:
         #    self.infex.agents[0].quarantine(days=self.quarantine_days)
-        #return
+        # return
         # END JUST FOR TEST!!!
         # potentially do tests
-        tests_max = min( nb_available_tests(self.infex.t), self.test_per_day )
+        tests_max = min(nb_available_tests(self.infex.t), self.test_per_day)
         cnt = 0
 
         ids_to_test = self.__get_most_likely_spreading_ids__()
@@ -366,7 +407,7 @@ cutoff_prob={self.cutoff_prob}
 
             # enough tests?
             if cnt + 1 > tests_max:
-                #no
+                # no
                 break
 
             # yes -> make the tests
@@ -381,7 +422,6 @@ cutoff_prob={self.cutoff_prob}
                 self.infex.agents[i].quarantine(days=self.quarantine_days)
 
         self.nb_tests += [(self.infex.t, cnt)]
-
 
 
 class TestPool(Test):
@@ -406,22 +446,21 @@ class TestPool(Test):
     def __init__(self, probing: PoolableProbing, infex: InfectionExecution, **kwargs):
         super().__init__(probing, infex)
         self.kwargs = kwargs
-        self.individual_quarantine_days = kwargs['individual_quarantine_days']
+        self.individual_quarantine_days = kwargs["individual_quarantine_days"]
         #
-        self.group_quarantine_days = kwargs['group_quarantine_days']
-        self.poolsize = kwargs['poolsize']
-        self.k_group = kwargs['k_group']
+        self.group_quarantine_days = kwargs["group_quarantine_days"]
+        self.poolsize = kwargs["poolsize"]
+        self.k_group = kwargs["k_group"]
         #
-        self.days_if_positive = kwargs['days_if_positive']
-        self.k_release = kwargs['k_release']
-        self.days_after_negative = kwargs['days_after_negative']
+        self.days_if_positive = kwargs["days_if_positive"]
+        self.k_release = kwargs["k_release"]
+        self.days_after_negative = kwargs["days_after_negative"]
         #
         self.t = 0
         self.queue = []
 
     def __str__(self):
-        return \
-            f"""TestPool:
+        return f"""TestPool:
 probing={self.probing},
 kwargs={self.kwargs}"""
 
@@ -433,26 +472,34 @@ kwargs={self.kwargs}"""
         args = [iter(mylist)] * groupsize
         tmp = zip_longest(*args, fillvalue=None)
         # remove None from lists in groups
-        tmp = list(map(lambda li: list(filter(None, li)),
-                       tmp))
+        tmp = list(map(lambda li: list(filter(None, li)), tmp))
         # remove [] from groups
-        return list(filter(lambda li: not(li == []),
-                           tmp))
+        return list(filter(lambda li: not (li == []), tmp))
 
-    def __schedule_quarantine_test__(self, agent: Agent, in_days: int, days_if_positive: int, k_release: int, days_after_negative: int):
+    def __schedule_quarantine_test__(
+        self,
+        agent: Agent,
+        in_days: int,
+        days_if_positive: int,
+        k_release: int,
+        days_after_negative: int,
+    ):
         """
         Schedule a quarantine test for later.
         """
         # print(f'schedule test for {agent.id}')
         # remove old plans for this id
-        self.queue = list(filter(lambda p: not(p['id'] == agent.id),
-                                 self.queue))
+        self.queue = list(filter(lambda p: not (p["id"] == agent.id), self.queue))
         # add new plan for this id
-        self.queue += [{'t': self.t + in_days,
-                        'id': agent.id,
-                        'days_if_positive': days_if_positive,
-                        'k_release': k_release,
-                        'days_after_negative': days_after_negative}]
+        self.queue += [
+            {
+                "t": self.t + in_days,
+                "id": agent.id,
+                "days_if_positive": days_if_positive,
+                "k_release": k_release,
+                "days_after_negative": days_after_negative,
+            }
+        ]
         # print(f'schedule={self.queue}')
 
     def __schedule__(self, t: int):
@@ -467,12 +514,19 @@ kwargs={self.kwargs}"""
         Get all test orders that are scheduled for today as a list.
         """
         # get scheduled agent ids
-        scheduled = [sch for sch in self.queue if sch['t'] <= self.t]
+        scheduled = [sch for sch in self.queue if sch["t"] <= self.t]
         # cleanup queue
-        self.queue = [sch for sch in self.queue if sch['t'] > self.t]
+        self.queue = [sch for sch in self.queue if sch["t"] > self.t]
         return scheduled
 
-    def __quarantine_ids__(self, ids: list, days: int, days_if_positive: int, k_release: int, days_after_negative: int):
+    def __quarantine_ids__(
+        self,
+        ids: list,
+        days: int,
+        days_if_positive: int,
+        k_release: int,
+        days_after_negative: int,
+    ):
         """
         Quarantine all ids.
         Further, schedule tests for them later on.
@@ -482,11 +536,13 @@ kwargs={self.kwargs}"""
             # send to quarantine
             self.infex.agents[i].quarantine(days)
             # schedule test for day before quarantine stop
-            self.__schedule_quarantine_test__(agent=self.infex.agents[i],
-                                              in_days=days - 1,
-                                              days_if_positive=days_if_positive,
-                                              k_release=k_release,
-                                              days_after_negative=days_after_negative)
+            self.__schedule_quarantine_test__(
+                agent=self.infex.agents[i],
+                in_days=days - 1,
+                days_if_positive=days_if_positive,
+                k_release=k_release,
+                days_after_negative=days_after_negative,
+            )
 
     def do_test(self):
         # print(f'time={t}')
@@ -497,25 +553,31 @@ kwargs={self.kwargs}"""
         # get alive population
         alive_pop = self.__get_alive__()
         # get all non-quarantined
-        nonquarantined_pop = list(filter(lambda i: not(self.infex.agents[i].quarantined),
-                                         alive_pop))
+        nonquarantined_pop = list(
+            filter(lambda i: not (self.infex.agents[i].quarantined), alive_pop)
+        )
         # remaining severe ill easily seen -> quarantine
-        immediate_quarantine = list(filter(lambda i: self.infex.agents[i].symptoms is Symptoms.SEVERE,
-                                           nonquarantined_pop))
+        immediate_quarantine = list(
+            filter(
+                lambda i: self.infex.agents[i].symptoms is Symptoms.SEVERE,
+                nonquarantined_pop,
+            )
+        )
         # print(f'immediate_quarantine={immediate_quarantine}')
         for i in immediate_quarantine:
             # Quarantine (long period).
             # If then positive (test self.k_release times) then quarantine again for
             # self.days_if_positive days.
             # If negative quarantine for self.days_after_negative days.
-            self.__quarantine_ids__([i],
-                                    days=self.individual_quarantine_days,
-                                    days_if_positive=self.days_if_positive,
-                                    k_release=self.k_release,
-                                    days_after_negative=self.days_after_negative)
+            self.__quarantine_ids__(
+                [i],
+                days=self.individual_quarantine_days,
+                days_if_positive=self.days_if_positive,
+                k_release=self.k_release,
+                days_after_negative=self.days_after_negative,
+            )
         # remove these
-        nonquarantined_pop = list(
-            set(nonquarantined_pop) - set(immediate_quarantine))
+        nonquarantined_pop = list(set(nonquarantined_pop) - set(immediate_quarantine))
         # shuffe rest
         random.shuffle(nonquarantined_pop)
         # group them
@@ -529,7 +591,9 @@ kwargs={self.kwargs}"""
                 break
             cnt += self.k_group
             # test group
-            test_result = self.probing.probe([self.infex.agents[i] for i in g], k=self.k_group)
+            test_result = self.probing.probe(
+                [self.infex.agents[i] for i in g], k=self.k_group
+            )
             # TODO: add prool result with somethg like self.infex.agents[i].add_testresult(test_result)
             if test_result:
                 # print(f'positive group={g}')
@@ -537,48 +601,53 @@ kwargs={self.kwargs}"""
                 # If then positive (test self.k_release times) then quarantine again for
                 # self.days_if_positive days.
                 # If negative quarantine for self.days_after_negative days.
-                self.__quarantine_ids__(g,
-                                        days=self.group_quarantine_days,
-                                        days_if_positive=self.days_if_positive,
-                                        k_release=self.k_release,
-                                        days_after_negative=self.days_after_negative)
+                self.__quarantine_ids__(
+                    g,
+                    days=self.group_quarantine_days,
+                    days_if_positive=self.days_if_positive,
+                    k_release=self.k_release,
+                    days_after_negative=self.days_after_negative,
+                )
 
         # get test plans for today
         scheduled_quarantined = self.__get_scheduled__()
         # go over scheduled quarantined ones, one by one
         # print(f'scheduled_quarantined={scheduled_quarantined}')
         for sch in scheduled_quarantined:
-
-            if sch['k_release'] == 0:
+            if sch["k_release"] == 0:
                 # no test needed, just release
                 continue
 
             # check if still tests available
-            if cnt + sch['k_release'] > tests_max:
+            if cnt + sch["k_release"] > tests_max:
                 break
-            cnt += sch['k_release']
+            cnt += sch["k_release"]
 
             # test individual
-            i = sch['id']
-            test_result = self.probing.probe([self.infex.agents[i]], k=sch['k_release'])
+            i = sch["id"]
+            test_result = self.probing.probe([self.infex.agents[i]], k=sch["k_release"])
             self.infex.agents[i].add_testresult(test_result)
             if test_result:
                 # positive test
                 # quarantine according to days and k_release in the schedule
-                self.__quarantine_ids__([i],
-                                        days=sch['days_if_positive'],
-                                        days_if_positive=sch['days_if_positive'],
-                                        k_release=sch['k_release'],
-                                        days_after_negative=sch['days_after_negative'])
+                self.__quarantine_ids__(
+                    [i],
+                    days=sch["days_if_positive"],
+                    days_if_positive=sch["days_if_positive"],
+                    k_release=sch["k_release"],
+                    days_after_negative=sch["days_after_negative"],
+                )
             else:
                 # negative test
-                if sch['days_after_negative'] > 0:
+                if sch["days_after_negative"] > 0:
                     # keep them for another sch['days_after_negative'] days
-                    self.__quarantine_ids__([i],
-                                            days=sch['days_after_negative'],
-                                            days_if_positive=None,
-                                            k_release=0,  # this means release without test
-                                            days_after_negative=None)
+                    self.__quarantine_ids__(
+                        [i],
+                        days=sch["days_after_negative"],
+                        days_if_positive=None,
+                        k_release=0,  # this means release without test
+                        days_after_negative=None,
+                    )
 
         self.nb_tests += [(self.infex.t, cnt)]
 
@@ -611,30 +680,32 @@ class TestContacts(TestPool):
 
     def __init__(self, probing: PoolableProbing, infex: InfectionExecution, **kwargs):
         # init TestPool
-        super().__init__(probing, infex,
-                         individual_quarantine_days=kwargs['individual_quarantine_days'],
-                         group_quarantine_days=kwargs['working_quarantine_days'],
-                         poolsize=kwargs['working_poolsize'],
-                         k_group=kwargs['working_k_group'],
-                         days_if_positive=kwargs['days_if_positive'],
-                         k_release=kwargs['k_release'],
-                         days_after_negative=kwargs['days_after_negative'])
+        super().__init__(
+            probing,
+            infex,
+            individual_quarantine_days=kwargs["individual_quarantine_days"],
+            group_quarantine_days=kwargs["working_quarantine_days"],
+            poolsize=kwargs["working_poolsize"],
+            k_group=kwargs["working_k_group"],
+            days_if_positive=kwargs["days_if_positive"],
+            k_release=kwargs["k_release"],
+            days_after_negative=kwargs["days_after_negative"],
+        )
         # init remaining
         self.kwargs = kwargs
-        self.contact_quarantine_days = kwargs['contact_quarantine_days']
-        self.lookback_days = kwargs['lookback_days']
+        self.contact_quarantine_days = kwargs["contact_quarantine_days"]
+        self.lookback_days = kwargs["lookback_days"]
         #
-        self.contacts_check = kwargs['contacts_check']
-        self.contacts_poolsize = kwargs['contacts_poolsize']
-        self.contacts_k_group = kwargs['contacts_k_group']
+        self.contacts_check = kwargs["contacts_check"]
+        self.contacts_poolsize = kwargs["contacts_poolsize"]
+        self.contacts_k_group = kwargs["contacts_k_group"]
         #
-        self.working_check = kwargs['working_check']
+        self.working_check = kwargs["working_check"]
         #
         self.lastday_severe_symptomatic = []
 
     def __str__(self):
-        return \
-            f"""TestContacts:
+        return f"""TestContacts:
 probing={self.probing},
 kwargs={self.kwargs}"""
 
@@ -650,7 +721,8 @@ kwargs={self.kwargs}"""
         contacts_ids = []
         for i in myids:
             contacts_ids += self.infex.get_contacts_fromtime(
-                agent_id=i, t_from=t - self.lookback_days)
+                agent_id=i, t_from=t - self.lookback_days
+            )
         # print(f'contacts_ids={contacts_ids}')
 
         if self.contacts_check:
@@ -662,22 +734,29 @@ kwargs={self.kwargs}"""
             # just quarantine contacts (k= 0)
             # but only (!) if they are not quarantined yet,
             # otherwise let their quarantines and plans as they are (check!)
-            contacts_ids = list(filter(lambda i: not(self.infex.agents[i].quarantined),
-                                       contacts_ids))
-            self.__quarantine_ids__(contacts_ids,
-                                    days=self.contact_quarantine_days,
-                                    days_if_positive=None,
-                                    k_release=0,  # dont test again
-                                    days_after_negative=None)
+            contacts_ids = list(
+                filter(lambda i: not (self.infex.agents[i].quarantined), contacts_ids)
+            )
+            self.__quarantine_ids__(
+                contacts_ids,
+                days=self.contact_quarantine_days,
+                days_if_positive=None,
+                k_release=0,  # dont test again
+                days_after_negative=None,
+            )
 
     @property
     def __new_severe_symptomatic__(self):
         # all alive ids
         alive_pop = self.__get_alive__()
-        today_severe_symptomatic = list(filter(lambda i: self.infex.agents[i].symptoms is Symptoms.SEVERE,
-                                               alive_pop))
+        today_severe_symptomatic = list(
+            filter(
+                lambda i: self.infex.agents[i].symptoms is Symptoms.SEVERE, alive_pop
+            )
+        )
         new_severe_symptomatic = list(
-            set(today_severe_symptomatic) - set(self.lastday_severe_symptomatic))
+            set(today_severe_symptomatic) - set(self.lastday_severe_symptomatic)
+        )
         # update
         self.lastday_severe_symptomatic = today_severe_symptomatic
         # print(new_severe_symptomatic)
@@ -694,11 +773,13 @@ kwargs={self.kwargs}"""
             # quarantine (long period)
             # if then positive (test self.k_release times) then quarantine again
             # for self.days_if_positive days
-            self.__quarantine_ids__([i],
-                                    days=self.individual_quarantine_days,
-                                    days_if_positive=self.days_if_positive,
-                                    k_release=self.k_release,
-                                    days_after_negative=self.days_after_negative)
+            self.__quarantine_ids__(
+                [i],
+                days=self.individual_quarantine_days,
+                days_if_positive=self.days_if_positive,
+                k_release=self.k_release,
+                days_after_negative=self.days_after_negative,
+            )
         # quarantine and schedule for testing contacts
         # note: if they are alredy quarantined this leaves them as they are
         if len(immediate_quarantine) > 0:
@@ -739,50 +820,57 @@ kwargs={self.kwargs}"""
         # go over scheduled quarantined plans ones, one by one
         to_quarantine = []
         for sch in scheduled_quarantined:
-
-            if sch['k_release'] == 0:
+            if sch["k_release"] == 0:
                 # dont test again, just release
                 continue
 
             positive = False
             # first look
-            i = sch['id']
+            i = sch["id"]
             if self.infex.agents[i].symptoms is Symptoms.SEVERE:
                 positive = True
             else:
                 # check if still tests available
-                if cnt + sch['k_release'] > tests_max:
+                if cnt + sch["k_release"] > tests_max:
                     break
-                cnt += sch['k_release']
+                cnt += sch["k_release"]
                 # test individual
-                positive = self.probing.probe([self.infex.agents[i]], k=sch['k_release'])
+                positive = self.probing.probe(
+                    [self.infex.agents[i]], k=sch["k_release"]
+                )
                 self.infex.agents[i].add_testresult(positive)
             # act on result
             if positive:
                 # positive test
                 to_quarantine += [i]
                 # quarantine according to days and k in the schedule
-                self.__quarantine_ids__([i],
-                                        days=sch['days_if_positive'],
-                                        days_if_positive=sch['days_if_positive'],
-                                        k_release=sch['k_release'],
-                                        days_after_negative=sch['days_after_negative'])
+                self.__quarantine_ids__(
+                    [i],
+                    days=sch["days_if_positive"],
+                    days_if_positive=sch["days_if_positive"],
+                    k_release=sch["k_release"],
+                    days_after_negative=sch["days_after_negative"],
+                )
             else:
                 # negative test
-                if sch['days_after_negative'] > 0:
+                if sch["days_after_negative"] > 0:
                     # keep them for another sch['days_after_negative'] days
-                    self.__quarantine_ids__([i],
-                                            days=sch['days_after_negative'],
-                                            days_if_positive=None,
-                                            k_release=0,  # dont test again
-                                            days_after_negative=None)
+                    self.__quarantine_ids__(
+                        [i],
+                        days=sch["days_after_negative"],
+                        days_if_positive=None,
+                        k_release=0,  # dont test again
+                        days_after_negative=None,
+                    )
 
         self.nb_tests += [(self.infex.t, cnt)]
 
 
 def get_Test(probing: PoolableProbing, infex: InfectionExecution, usetest: dict):
-    if usetest['type'] in REGISTERED_TESTS:
+    if usetest["type"] in REGISTERED_TESTS:
         # print("Create test...")
-        return eval( f"{usetest['type']}(probing=probing, infex=infex, **usetest['parameters'])" )
+        return eval(
+            f"{usetest['type']}(probing=probing, infex=infex, **usetest['parameters'])"
+        )
     else:
-        assert(False)
+        assert False

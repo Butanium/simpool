@@ -11,13 +11,12 @@ from Infections.Agent import Agent, Category
 
 class GraphType(Enum):
     AGENT_SAMPLES = auto()
-    ERDOS_RENYI = auto() 
+    ERDOS_RENYI = auto()
     REGULAR = auto()
     LYON = auto()
 
 
 class Hospital:
-
     def __init__(self):
         pass
 
@@ -26,8 +25,12 @@ class Hospital:
 
 
 class SingleWard(Hospital):
-
-    def __init__(self, infex, gtype=GraphType.LYON, gparam={'contacts_per_agent': 4, 'min_per_contact': 15}):
+    def __init__(
+        self,
+        infex,
+        gtype=GraphType.LYON,
+        gparam={"contacts_per_agent": 4, "min_per_contact": 15},
+    ):
         self.graphs = []
         self.working = []
         self.infex = infex
@@ -39,17 +42,17 @@ class SingleWard(Hospital):
             for agent in self.infex.agents.values():
                 self.generate_kernel(agent)
         else:
-            self.contacts_per_agent = self.gparam['contacts_per_agent']
-            self.min_per_contact = self.gparam['min_per_contact']
+            self.contacts_per_agent = self.gparam["contacts_per_agent"]
+            self.min_per_contact = self.gparam["min_per_contact"]
 
     def generate_kernel(self, agent):
         self.kernel[agent] = set()
-        if agent.category in [Category.NURSE, Category.DOCTOR]: 
+        if agent.category in [Category.NURSE, Category.DOCTOR]:
             for cat in Category:
                 ker_size = config.kerneldist[agent.category][cat]()
                 pop = [a for a in self.infex.agents.values() if a.category is cat]
                 random.shuffle(pop)
-                self.kernel[agent] |= set(pop[0:min(ker_size,len(pop))])
+                self.kernel[agent] |= set(pop[0 : min(ker_size, len(pop))])
 
     def generate_contacts(self, agent):
         ret = set()
@@ -57,18 +60,24 @@ class SingleWard(Hospital):
         if agent.category in [Category.NURSE, Category.DOCTOR]:
             for cat in Category:
                 contact_size = config.contactsdist[agent.category][cat]()
-                #contact_size = len(self.infex.agents)
+                # contact_size = len(self.infex.agents)
                 if contact_size < len(self.kernel[agent]):
                     pop = [a for a in self.kernel[agent]]
                     random.shuffle(pop)
                     ret |= set(pop[0:contact_size])
                 else:
                     ret |= self.kernel[agent]
-                    pop = [a for a in self.infex.agents.values() if a.category is cat and a not in self.kernel[agent]]
+                    pop = [
+                        a
+                        for a in self.infex.agents.values()
+                        if a.category is cat and a not in self.kernel[agent]
+                    ]
                     random.shuffle(pop)
-                    nb_additional = min(len(pop), contact_size - len(self.kernel[agent]))
+                    nb_additional = min(
+                        len(pop), contact_size - len(self.kernel[agent])
+                    )
                     ret |= set(pop[0:nb_additional])
-                
+
         return ret
 
     def define_working(self, time, working):
@@ -79,17 +88,17 @@ class SingleWard(Hospital):
 
         for _ in range(current_max_time, time):
             self.working += [[]]
-        self.working[time-1] = working
+        self.working[time - 1] = working
 
     def generate_graph(self, time: int):
         if self.gtype is GraphType.AGENT_SAMPLES:
-            pop = self.working[time-1]
+            pop = self.working[time - 1]
             graph = nx.Graph()
-            for i in self.working[time-1]:
+            for i in self.working[time - 1]:
                 graph.add_node(i)
 
                 random.shuffle(pop)
-                contacts = pop[0:min(4,len(pop))]
+                contacts = pop[0 : min(4, len(pop))]
 
                 # don't include self-loops
                 if i in contacts and len(pop) > 4:
@@ -98,18 +107,18 @@ class SingleWard(Hospital):
 
                 for j in contacts:
                     graph.add_edge(i, j, weight=self.min_per_contact)
-                
+
             return graph
         elif self.gtype is GraphType.ERDOS_RENYI:
             raise NotImplementedError()
         elif self.gtype is GraphType.REGULAR:
-            #Returns a random d-regular graph on the set of agent indices.
-            n = len(self.working[time-1])
-            d = min(self.contacts_per_agent, n-1)
+            # Returns a random d-regular graph on the set of agent indices.
+            n = len(self.working[time - 1])
+            d = min(self.contacts_per_agent, n - 1)
 
             if n == 0:
                 return nx.complete_graph(0)
-            #print(f'd = {d}, n = {n}')
+            # print(f'd = {d}, n = {n}')
             if d >= n:
                 return nx.complete_graph(n)
 
@@ -120,12 +129,16 @@ class SingleWard(Hospital):
                 graph.add_node(i)
             for j in range(n):
                 for k in working_graph.neighbors(j):
-                    graph.add_edge(self.working[time-1][j], self.working[time-1][k], weight=self.min_per_contact)
+                    graph.add_edge(
+                        self.working[time - 1][j],
+                        self.working[time - 1][k],
+                        weight=self.min_per_contact,
+                    )
             return graph
         elif self.gtype is GraphType.LYON:
-            pop = self.working[time-1]
+            pop = self.working[time - 1]
             graph = nx.Graph()
-            for i in self.working[time-1]:
+            for i in self.working[time - 1]:
                 graph.add_node(i)
                 agent = self.infex.agents[i]
 
@@ -136,7 +149,7 @@ class SingleWard(Hospital):
                     graph.add_edge(i, agent2.id, weight=duration)
             return graph
         else:
-            raise ValueError('Graph type not supported.')
+            raise ValueError("Graph type not supported.")
 
     def generate_graphs(self, time, gtype=GraphType.AGENT_SAMPLES):
         """
@@ -146,7 +159,7 @@ class SingleWard(Hospital):
         current_max_time = len(self.graphs)
 
         if len(self.working) < current_max_time:
-            raise ValueError('Not enough working sets specified')
+            raise ValueError("Not enough working sets specified")
 
         for _ in range(current_max_time, time):
             graph = self.generate_graph(time)
@@ -159,11 +172,11 @@ class SingleWard(Hospital):
         """
         self.generate_graphs(time)
 
-        if not self.graphs[time-1].has_node(agent):
+        if not self.graphs[time - 1].has_node(agent):
             return {}
 
         ret = dict()
-        for other in self.graphs[time-1].neighbors(agent):
-            ret[other] = self.graphs[time-1][agent][other]['weight']
+        for other in self.graphs[time - 1].neighbors(agent):
+            ret[other] = self.graphs[time - 1][agent][other]["weight"]
 
         return ret
