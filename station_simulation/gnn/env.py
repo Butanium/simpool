@@ -351,7 +351,6 @@ class SimulationGenerator(object):
         graphs = np.array(graphs)
         node_labels = np.array(node_labels)
         spreading = np.array(spreading)
-        print(f"shapes: graphs: {graphs.shape}, node_labels: {node_labels.shape}, spreading: {spreading.shape}" )
         return graphs, node_labels, spreading
 
 
