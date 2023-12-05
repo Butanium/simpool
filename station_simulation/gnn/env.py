@@ -1,12 +1,6 @@
-import sys
-
-sys.path.append("../../")
-
 import numpy as np
 import simulator
-import config
-import copy
-import argparse
+import config as config
 import joblib
 from joblib import Parallel, delayed
 import contextlib
@@ -16,7 +10,7 @@ from Infections.Agent import Symptoms, Category
 from pprint import pprint
 import os.path
 from os import path
-from ML.mlutils import progressbar, get_loss_function
+from ML.mlutils import progressbar
 
 
 @contextlib.contextmanager
@@ -24,6 +18,7 @@ def tqdm_joblib(tqdm_object):
     """
     Context manager to patch joblib to report into tqdm progress bar given as argument
     """
+
     class TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -40,17 +35,10 @@ def tqdm_joblib(tqdm_object):
         joblib.parallel.BatchCompletionCallBack = old_batch_callback
         tqdm_object.close()
 
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 import random
-import torch as th
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-import torch
-import matplotlib.pyplot as plt
-import matplotlib.colors
-import matplotlib.cm as cm
 
 
 # ===================================
@@ -238,18 +226,18 @@ def contactgraphs2matrix(contactgraphs):
     contact graph
 
     Returns:
-    matrix : [0 .. T - 1] [0 .. config.N**2 - 1] -> weight of contact
+    matrix : (T, config.N, config.N) -> weight of contact
     """
     # init
     current_T = len(contactgraphs)
     current_N = len(contactgraphs[0].keys())
     # print(current_N)
-    matrix = [[0 for _ in range(current_N * current_N)] for t in range(current_T)]
+    matrix = np.zeros((current_T, current_N, current_N))
     # fill
     for t in range(current_T):
         for i in range(current_N):
             for j in contactgraphs[t][i].keys():
-                matrix[t][i * current_N + j] = contactgraphs[t][i][j]
+                matrix[t][i][j] = contactgraphs[t][i][j]
     return matrix
 
 
@@ -304,7 +292,8 @@ class SimulationGenerator(object):
         # symptom_none : [0 .. config.T - 1] [0 .. config.N - 1] -> {0,1}
         #   etc.
         # labels: (T, #nodes, #features)
-        labels = np.concatenate(
+
+        node_labels = np.stack(
             (
                 symptom_none,
                 symptom_mild,
@@ -319,21 +308,22 @@ class SimulationGenerator(object):
                 test_positive,
                 test_negative,
             ),
-            axis=1,
+            axis=-1,
         )
         # graph: (T, #nodes, #nodes)
         graph = contactgraphs2matrix(contactgraphs)
+        spreading = np.array(spreading)
         #
         # speading : [0 .. config.T - 1] [0 .. config.N - 1] -> {0,1}
         #   if agent 0 is spreading at time t
         # print('[done generate data]')
-        return graph, labels, spreading
+        return graph, node_labels, spreading
 
     def generate_traces(self):
         # print('Generate batch')
-        X_data = []
-        Y_data = []
-        weights = []
+        graphs = []
+        node_labels = []
+        spreading = []
 
         if MULTIPROCESSING_DATAGEN:
             # results = Parallel(n_jobs=JOBNUMBER)( delayed(self.generate_data)() for i in range(self.traces_in_dataset) )
@@ -348,27 +338,23 @@ class SimulationGenerator(object):
                 )
 
             for i in range(self.traces_in_dataset):
-                x = results[i][0]
-                y = results[i][1]
-                w = [CLASS_WEIGHTS[y[t]] + y[t] * sum(y[:t]) for t in range(len(y))]
-                X_data.append(x)
-                Y_data.append(y)
-                weights.append(w)
+                graphs.append(results[i][0])
+                node_labels.append(results[i][1])
+                spreading.append(results[i][2])
         else:
-            assert False, "TODO: needs to be adapted!"
             for _ in progressbar(range(self.traces_in_dataset), "Dataset: "):
-                x, y = self.generate_data()
-                # ATTENTION: This assume that the same agent cannot be spreading again.
-                w = [CLASS_WEIGHTS[y[t]] + y[t] * sum(y[:t]) for t in range(len(y))]
-                X_data.append(x)
-                Y_data.append(y)
-                weights.append(w)
-        # just convert to same shape np-array
-        X_data = np.array(X_data).reshape(self.traces_in_dataset, config.T, OBS_LENGTH)
-        # convert true,false to 0,1. Then also convert to same shape np-array
-        Y_data = (
-            np.array(Y_data).astype(int).reshape(self.traces_in_dataset, config.T, 1)
-        )
-        weights = np.array(weights).reshape(self.traces_in_dataset, config.T, 1)
-        # print('[done generate batch]')
-        return X_data, Y_data, weights
+                graph, node_l, spreading = self.generate_data()
+                graphs.append(graph)
+                node_labels.append(node_l)
+                spreading.append(spreading)
+        # just convert to np-array
+        graphs = np.array(graphs)
+        node_labels = np.array(node_labels)
+        spreading = np.array(spreading)
+        print(f"shapes: graphs: {graphs.shape}, node_labels: {node_labels.shape}, spreading: {spreading.shape}" )
+        return graphs, node_labels, spreading
+
+
+if __name__ == "__main__":
+    data_generator = SimulationGenerator(traces_in_dataset=100, usetest=mytests[1])
+    graphs, node_labels, spreading = data_generator.generate_traces()
